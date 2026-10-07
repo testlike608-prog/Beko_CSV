@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refrigerator Vision System</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <style>
+        :root {
+            --color-background-primary: #ffffff;
+            --color-background-secondary: #f9fafb;
+            --color-background-tertiary: #f3f4f6;
+            --color-border-secondary: #e5e7eb;
+            --color-border-tertiary: #d1d5db;
+            --color-text-primary: #111827;
+            --color-text-secondary: #4b5563;
+            --color-text-tertiary: #9ca3af;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+        }
+        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // استبدال الـ import 
+        const { useState, useEffect, useRef } = React;
+
+        const NAV_ITEMS = [
+          { id: "home", label: "Home", icon: "⌂", roles: ["admin", "user", "dev"] },
+          { id: "create_program", label: "Create Program CSV", icon: "⊞", roles: ["admin", "dev"] },
+          { id: "sql", label: "SQL Connection", icon: "◈", roles: ["admin", "user", "dev"] },
+          { id: "create_user", label: "Create New User", icon: "⊕", roles: ["admin", "dev"] },
+        ];
+
+        const FIXED_OPTIONS = {
+          front_logo: [["None","00"],["Beko","1A"],["Defy","1B"],["Arcelik","1C"],["Ariston","1D"],["Whirlpool","1E"]],
+          display_logo: [["None","00"],["Fish screen","1F"],["Second screen","1G"],["Ahmed screen","1H"],["Opt3","1I"],["Opt4","1J"]],
+          color: [["None","00"],["White","6A"],["Black","6B"],["Opt3","6C"],["Opt4","6D"],["Opt5","6E"]],
+          data_logo: [["None","00"],["Beko","4A"],["Defy","4B"],["Arcelik","4C"],["Ariston","4D"],["Whirlpool","4E"]],
+          inverter_logo: [["None","00"],["Beko","7A"],["Defy","7B"],["Arcelik","7C"],["Ariston","7D"],["Whirlpool","7E"]],
+          power_logo: [["None","00"],["Beko","3A"],["Defy","3B"],["Arcelik","3C"],["Ariston","3D"],["Whirlpool","3E"]],
+          eva_cover: [["None","00"],["Beko","2A"],["Defy","2B"],["Arcelik","2C"],["Ariston","2D"],["Whirlpool","2E"]],
+          drawer_printing: [["None","00"],["Veg","5A"],["Dairy","5B"],["Meat","5C"],["Opt3","5D"],["Opt5","5E"]],
+          color_logo: [["None","00"],["White","6A"],["Black","6B"],["Opt3","6C"],["Opt4","6D"],["Opt5","6E"]],
+          fan_cover: [["None","00"],["Beko","8A"],["Defy","8B"],["Arcelik","8C"],["Ariston","8D"],["Whirlpool","8E"]],
+          shelve_color: [["None","00"],["White","9A"],["Black","9B"],["Opt3","9C"],["Opt4","9D"],["Opt5","9E"]],
+        };
+
+        const FIELD_LABELS = {
+          front_logo: "Front Logo", display_logo: "Display Logo", color: "Color",
+          data_logo: "Data Logo", inverter_logo: "Inverter Logo", power_logo: "Power Logo",
+          eva_cover: "Eva Cover", drawer_printing: "Drawer Printing", color_logo: "Color Logo",
+          fan_cover: "Fan Cover", shelve_color: "Shelve Color",
+        };
+
+        // --- قم بوضع باقي الـ Components (Toast, Badge, StationCard, SelectPicker, Modal, HomePage, CreateProgramPage, SQLPage, CreateUserPage, LoginPage) هنا بدون أي تعديل ---
+        // (تم اختصارها هنا لتجنب التكرار، انسخها من الكود بتاعك وضعها هنا مباشرة)
+
+        // تعديل الدالة الأساسية لإزالة export default
+        function App() {
+          // نفس كود App() بتاعك بالظبط
+          const [user, setUser] = useState(null);
+          const [activePage, setActivePage] = useState("home");
+          const [toast, setToast] = useState({ msg: "", type: "success" });
+          const [timesModalOpen, setTimesModalOpen] = useState(false);
+          const [alertModal, setAlertModal] = useState(null);
+
+          // ... (باقي كود App)
+          return (
+             <div style={{ minHeight: "100vh", background: "var(--color-background-tertiary)" }}>
+               {/* ... */}
+             </div>
+          );
+        }
+
+        // أمر تشغيل الرياكت في الـ Div المسمى root
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# ملفات مش محتاجينها جوه الصورة
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# مثبّتات كبيرة — بتتسطب وقت البناء مش بتتنسخ
+static/node-v24.11.1-x64.msi
+
+# ملحوظة: مثبّت VisionMaster *مش* مكتوب هنا عن قصد —
+# الـ Dockerfile محتاج ينسخه (COPY) عشان يسطّبه جوه الصورة.
+# لو ضفته هنا، البناء هيفشل بـ "file not found".
+
+# بيانات وقت التشغيل — دي بتيجي من volumes مش من الصورة،
+# عشان إعدادات العميل ما تتكتبش فوقها مع كل تحديث
+data/
+config.json
+logins.csv
+last_db1_settings.txt
+last_db2_settings.txt
+*.log
+
+# توثيق
+*.md

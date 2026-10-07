@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login Form</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css?v={{ static_v('styles.css') }}">
+{% if static_exists('socket.io.min.js') %}  <script src="/static/socket.io.min.js?v={{ static_v('socket.io.min.js') }}"></script>
+{% endif %}
+  <script src="/static/main.js?v={{ static_v('main.js') }}"></script>
+</head>
+<body class="auth-body">
+
+  <div class="login-container">
+    <div class="auth-logo">M</div>
+    <h1 class="auth-title">Welcome Back</h1>
+    <p class="auth-subtitle">Please sign in to your account</p>
+
+    {% if error %}
+    <div class="msg-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required placeholder="Enter your username" />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="password" name="password" required placeholder="Enter your password" />
+          <span class="toggle-password" id="togglePassword">SHOW</span>
+        </div>
+      </div>
+
+      <button type="submit" class="auth-btn">Sign In</button>
+      <div class="auth-divider"></div>
+    </form>
+  </div>
+
+</body>
+</html>

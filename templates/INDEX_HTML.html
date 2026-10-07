@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TCP Console</title>
+  <meta name="color-scheme" content="light dark">
+  <script src="/static/tailwind.cdn.js"></script>
+  <link rel="stylesheet" href="/static/styles.css?v={{ static_v('styles.css') }}">
+{% if static_exists('socket.io.min.js') %}  <script src="/static/socket.io.min.js?v={{ static_v('socket.io.min.js') }}"></script>
+{% endif %}
+  <script src="/static/main.js?v={{ static_v('main.js') }}"></script>
+  <script src="/static/station_log.js?v={{ static_v('station_log.js') }}"></script>
+</head>
+<body class="min-h-full">
+<div class="max-w-7xl mx-auto p-4 space-y-5">
+
+  <header class="relative flex items-center justify-center">
+    <div class="flex items-center gap-3">
+      <img src="/static/beko.png" alt="Beko Logo" class="h-20">
+      <h1 style="font-family:'Nunito',sans-serif;font-weight:700;color:#0382b8;font-size:1.75rem;"
+          class="text-xl font-semibold">Refrigerator Vision System</h1>
+    </div>
+    <div class="absolute right-0 flex items-center gap-3">
+
+      <!-- ===== Alerts Bell ===== -->
+      <div id="alertBellWrap" class="relative">
+        <button id="alertBellBtn" type="button" title="Alerts"
+          class="relative w-11 h-11 flex items-center justify-center rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-[#0e1628] hover:bg-gray-50 dark:hover:bg-slate-800 shadow transition">
+          <svg id="alertBellIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+               class="w-6 h-6 text-slate-600 dark:text-slate-300">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span id="alertBadge"
+            class="hidden absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-600 text-white text-[11px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-[#0e1628]">0</span>
+        </button>
+
+        <div id="alertMenu"
+          class="hidden absolute right-0 mt-2 w-96 max-w-[92vw] bg-white dark:bg-[#0e1628] border border-gray-200 dark:border-slate-700 rounded-xl shadow-2xl z-[200] overflow-hidden text-left">
+          <div class="px-4 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+            <span class="font-bold text-slate-700 dark:text-slate-200">Alerts</span>
+            <span id="alertCountText" class="text-xs text-gray-500 dark:text-gray-400">0 active</span>
+          </div>
+          <div id="alertList" class="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800"></div>
+          <div id="alertEmpty" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            No active alerts
+          </div>
+        </div>
+      </div>
+
+      <img src="/static/meeserve.png" alt="Meeserv Logo" class="h-20">
+    </div>
+  </header>
+
+  <div class="flex gap-5 items-start mt-8">
+    <aside class="w-64 shrink-0 self-start">
+      <nav class="bg-white dark:bg-[#0e1628] border border-gray-200/70 dark:border-slate-700 rounded-xl p-6 space-y-4 shadow-md min-h-[650px]">
+
+        <a href="{{ url_for('CreateProgram.page_create_program') }}"
+          class="group flex items-center justify-between w-full px-3 py-2 rounded-lg border border-transparent hover:border-slate-300/70 hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition">
+          <span class="flex items-center gap-2"><span class="font-medium">Create Program CSV</span></span>
+          <span class="opacity-50 group-hover:opacity-80">›</span>
+        </a>
+
+        <a href="{{ url_for('SQL.sql_connection') }}"
+          class="group flex items-center justify-between w-full px-3 py-2 rounded-lg border border-transparent hover:border-slate-300/70 hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition">
+          <span class="flex items-center gap-2"><span class="font-medium">SQL Connection</span></span>
+          <span class="opacity-50 group-hover:opacity-80">›</span>
+        </a>
+
+        <button id="btnAdjustTimes"
+          class="group flex items-center justify-between w-full px-3 py-2 rounded-lg border border-transparent hover:border-slate-300/70 hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition text-left {% if auth != 'admin' and auth != 'dev' %}pointer-events-none opacity-50 cursor-not-allowed{% endif %}">
+          <span class="flex items-center gap-2"><span class="font-medium">Adjust Times</span></span>
+          <span class="opacity-50 group-hover:opacity-80">›</span>
+        </button>
+
+        <button id="btnIoMapping"
+          class="group flex items-center justify-between w-full px-3 py-2 rounded-lg border border-transparent hover:border-slate-300/70 hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition text-left {% if auth != 'dev' %}pointer-events-none opacity-50 cursor-not-allowed{% endif %}">
+          <span class="flex items-center gap-2"><span class="font-medium">Settings</span></span>
+          <span class="opacity-50 group-hover:opacity-80">›</span>
+        </button>
+
+        <a href="{{ url_for('CreateUser.create_user') }}"
+          class="group flex items-center justify-between w-full px-3 py-2 rounded-lg border border-transparent hover:border-slate-300/70 hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition {% if auth != 'admin' and auth != 'dev' %}pointer-events-none opacity-50 cursor-not-allowed{% endif %}">
+          <span class="flex items-center gap-2"><span class="font-medium">Create New User</span></span>
+          <span class="opacity-50 group-hover:opacity-80">›</span>
+        </a>
+
+        <div class="pt-2 mt-2 border-t border-slate-200/70 dark:border-slate-700">
+          <a href="{{ url_for('auth.login') }}"
+            class="block px-3 py-2 rounded-lg hover:bg-slate-50/40 dark:hover:bg-slate-800/40 font-semibold text-[#0382b8]">
+            Logout
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="flex-1 space-y-5">
+      <div class="w-11/12 max-w-4xl mx-auto mt-0 space-y-6">
+
+        <!-- Process Control (START / STOP) -->
+        <section class="card border border-gray-200 dark:border-gray-700 shadow-lg rounded-xl overflow-hidden p-0">
+          <div class="bg-gradient-to-r from-slate-800 to-slate-700 text-white px-5 py-3 font-bold text-lg flex justify-between items-center gap-4">
+            <span class="tracking-wide shrink-0">Process Control</span>
+            <span id="processStatusBadge"
+                  class="shrink-0 text-xs font-semibold px-3 py-1 rounded-full bg-gray-500/80 tracking-wider uppercase">
+              Checking…
+            </span>
+          </div>
+
+          <div class="px-5 py-4 bg-white dark:bg-[#0e1628]">
+            <div class="flex items-stretch gap-3">
+              <button id="btnStartProcess" type="button"
+                class="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg shadow transition">
+                <span class="text-base leading-none">▶</span>
+                <span>START</span>
+              </button>
+
+              <button id="btnStopProcess" type="button"
+                class="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg shadow transition">
+                <span class="text-base leading-none">■</span>
+                <span>STOP</span>
+              </button>
+
+              <button id="btnRestartProcess" type="button"
+                class="flex-1 flex items-center justify-center gap-2 bg-slate-600 hover:bg-slate-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg shadow transition">
+                <span class="text-base leading-none">⟳</span>
+                <span>RESTART</span>
+              </button>
+            </div>
+
+            <!-- Status strip: fixed height so the card never shifts -->
+            <div class="mt-4 h-8 flex items-center justify-center">
+              <div id="processMessageBox"
+                   class="opacity-0 scale-95 transition-all duration-300 inline-flex items-center gap-2.5 max-w-full px-3.5 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800/60">
+                <span class="relative flex h-2 w-2 shrink-0">
+                  <span id="processMessagePing" class="absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
+                  <span id="processMessageDot" class="relative inline-flex rounded-full h-2 w-2 bg-gray-400"></span>
+                </span>
+                <span id="processMessage" class="text-sm font-medium text-gray-600 dark:text-gray-400 truncate"></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Production Line Overview -->
+        <section class="card mb-6 overflow-hidden p-0 relative border border-gray-200 dark:border-gray-700 shadow-lg rounded-xl">
+          <div class="bg-gradient-to-r from-[#0382b8] to-blue-800 text-white px-5 py-3 font-bold text-lg flex justify-between items-center shadow-md z-10 relative">
+            <span class="tracking-wide">Live Production Line Overview</span>
+            <span class="flex h-3 w-3 relative">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+          </div>
+          <div class="w-full h-[320px] bg-slate-50 dark:bg-slate-900 flex justify-center items-center overflow-hidden p-3">
+            <img src="/static/production_line.png" alt="Production Line Layout"
+              class="max-h-full max-w-full object-contain hover:scale-105 transition-transform duration-700 drop-shadow-md">
+          </div>
+        </section>
+
+        <!-- Station 1 -->
+        <section class="station-card flex flex-col md:flex-row gap-6 hover:shadow-lg transition-shadow duration-300">
+          <div class="w-full md:w-1/3 h-48 md:h-auto shrink-0 rounded-xl overflow-hidden relative group shadow-inner border border-gray-100 dark:border-gray-600">
+            <img src="/static/outer.png" alt="Exterior Scan Module" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+            <div class="absolute bottom-3 left-3 flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+              <span class="text-white font-semibold tracking-wider text-xs uppercase opacity-90">Visual Feed Active</span>
+            </div>
+          </div>
+          <div class="w-full md:w-2/3 flex flex-col justify-center space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
+              <h2 class="font-extrabold text-2xl bg-clip-text text-transparent bg-gradient-to-r from-[#0382b8] to-cyan-500 dark:from-blue-400 dark:to-cyan-300 tracking-tight">Premium Exterior Scan</h2>
+              <span class="text-[10px] text-gray-500 font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-600 shadow-sm">192.168.1.16:7940</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1.5 font-bold uppercase tracking-wider">Unit Status</p>
+                <div id="s1-arrived-flag" class="flag-indicator flag-waiting shadow-sm">
+                  <span class="flag-dot dot-waiting"></span>
+                  <span id="s1-arrived-text">Waiting...</span>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1.5 font-bold uppercase tracking-wider">Inspection Result</p>
+                <div id="s1-result-flag" class="flag-indicator flag-idle shadow-sm">
+                  <span class="flag-dot dot-idle"></span>
+                  <span id="s1-result-text">No Result Yet</span>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div class="info-box shadow-sm hover:border-blue-300 transition-colors">
+                <span class="info-label font-semibold">Dummy Number</span>
+                <span id="s1-dummy" class="info-value empty">—</span>
+              </div>
+              <div class="info-box shadow-sm hover:border-blue-300 transition-colors">
+                <span class="info-label font-semibold">SKU Number</span>
+                <span id="s1-sku" class="info-value empty">—</span>
+              </div>
+            </div>
+            <div id="s1-failed-box" class="info-box shadow-sm">
+              <div class="flex items-center justify-between gap-2">
+                <span class="info-label font-semibold">Failed Tests</span>
+                <span id="s1-failed-dummy" class="text-[11px] text-gray-500 dark:text-gray-400 font-mono"></span>
+              </div>
+              <div id="s1-failed-tests" class="flex flex-wrap gap-1.5 mt-1.5">
+                <span class="info-value empty">—</span>
+              </div>
+            </div>
+            <div class="station-log" data-station="1">
+              <div class="station-log-bar">
+                <button type="button" class="station-log-toggle" title="Show / hide logs">
+                  <span class="station-log-caret">&#9662;</span> Station 1 Logs
+                  <span class="station-log-badge hidden"></span>
+                </button>
+                <div class="station-log-tools">
+                  <select class="station-log-filter" title="Filter">
+                    <option value="all">All</option>
+                    <option value="warn">Warnings +</option>
+                    <option value="error">Errors</option>
+                  </select>
+                  <button type="button" class="station-log-font-down" title="Smaller text">A&minus;</button>
+                  <button type="button" class="station-log-font-up" title="Bigger text">A+</button>
+                  <button type="button" class="station-log-pause" title="Pause auto-scroll">Pause</button>
+                  <button type="button" class="station-log-clear" title="Clear view">Clear</button>
+                  <button type="button" class="station-log-popout" title="Open in a separate window">&#10697; Pop out</button>
+                </div>
+              </div>
+              <div class="station-log-body"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Station 2 -->
+        <section class="station-card flex flex-col md:flex-row gap-6 hover:shadow-lg transition-shadow duration-300">
+          <div class="w-full md:w-1/3 h-48 md:h-auto shrink-0 rounded-xl overflow-hidden relative group shadow-inner border border-gray-100 dark:border-gray-600">
+            <img src="/static/inner.png" alt="Interior Scan Module" class="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-110">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+            <div class="absolute bottom-3 left-3 flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+              <span class="text-white font-semibold tracking-wider text-xs uppercase opacity-90">Visual Feed Active</span>
+            </div>
+          </div>
+          <div class="w-full md:w-2/3 flex flex-col justify-center space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
+              <h2 class="font-extrabold text-2xl bg-clip-text text-transparent bg-gradient-to-r from-[#0382b8] to-cyan-500 dark:from-blue-400 dark:to-cyan-300 tracking-tight">Precision Interior Scan</h2>
+              <span class="text-[10px] text-gray-500 font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-600 shadow-sm">192.168.1.17:7950</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1.5 font-bold uppercase tracking-wider">Unit Status</p>
+                <div id="s2-arrived-flag" class="flag-indicator flag-waiting shadow-sm">
+                  <span class="flag-dot dot-waiting"></span>
+                  <span id="s2-arrived-text">Waiting...</span>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1.5 font-bold uppercase tracking-wider">Inspection Result</p>
+                <div id="s2-result-flag" class="flag-indicator flag-idle shadow-sm">
+                  <span class="flag-dot dot-idle"></span>
+                  <span id="s2-result-text">No Result Yet</span>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div class="info-box shadow-sm hover:border-blue-300 transition-colors">
+                <span class="info-label font-semibold">Dummy Number</span>
+                <span id="s2-dummy" class="info-value empty">—</span>
+              </div>
+              <div class="info-box shadow-sm hover:border-blue-300 transition-colors">
+                <span class="info-label font-semibold">SKU Number</span>
+                <span id="s2-sku" class="info-value empty">—</span>
+              </div>
+            </div>
+            <div id="s2-failed-box" class="info-box shadow-sm">
+              <div class="flex items-center justify-between gap-2">
+                <span class="info-label font-semibold">Failed Tests</span>
+                <span id="s2-failed-dummy" class="text-[11px] text-gray-500 dark:text-gray-400 font-mono"></span>
+              </div>
+              <div id="s2-failed-tests" class="flex flex-wrap gap-1.5 mt-1.5">
+                <span class="info-value empty">—</span>
+              </div>
+            </div>
+            <div class="station-log" data-station="2">
+              <div class="station-log-bar">
+                <button type="button" class="station-log-toggle" title="Show / hide logs">
+                  <span class="station-log-caret">&#9662;</span> Station 2 Logs
+                  <span class="station-log-badge hidden"></span>
+                </button>
+                <div class="station-log-tools">
+                  <select class="station-log-filter" title="Filter">
+                    <option value="all">All</option>
+                    <option value="warn">Warnings +</option>
+                    <option value="error">Errors</option>
+                  </select>
+                  <button type="button" class="station-log-font-down" title="Smaller text">A&minus;</button>
+                  <button type="button" class="station-log-font-up" title="Bigger text">A+</button>
+                  <button type="button" class="station-log-pause" title="Pause auto-scroll">Pause</button>
+                  <button type="button" class="station-log-clear" title="Clear view">Clear</button>
+                  <button type="button" class="station-log-popout" title="Open in a separate window">&#10697; Pop out</button>
+                </div>
+              </div>
+              <div class="station-log-body"></div>
+            </div>
+          </div>
+        </section>
+
+        {% if csv_files %}
+        <section class="card border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div class="flex items-center justify-between">
+            <h2 class="font-bold text-gray-800 dark:text-gray-200">Saved Programs</h2>
+            <div class="text-xs opacity-75 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">Newest first</div>
+          </div>
+          <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2" id="programGrid">
+            {% for file in csv_files %}
+            {% if file.name|lower|trim != 'logins.csv' %}
+            <button class="w-full text-left border rounded-lg p-2 hover:bg-blue-50 hover:border-blue-200 transition-all dark:border-gray-600 dark:hover:bg-slate-700"
+              onclick="showProgramData('{{ file.name }}')">
+              <div class="font-medium text-sm truncate text-gray-700 dark:text-gray-300" title="{{ file.name }}">{{ file.name }}</div>
+              <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{{ (file.size/1024)|round(1) }} KB</div>
+            </button>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </section>
+        {% endif %}
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- I/O Mapping Modal -->
+<div id="ioMappingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+    <div class="flex justify-between items-center mb-4 border-b pb-2">
+      <h3 class="text-xl font-semibold text-[#0382b8]">I/O Settings Mapping</h3>
+      <button id="btnCloseIoMapping" class="text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
+    </div>
+    <!-- Operation modes -->
+    <div class="mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+      <h4 class="font-bold border-b pb-1 text-sky-600 dark:text-sky-400 mb-3">Operation Modes</h4>
+
+      <div class="flex items-start justify-between gap-4 p-3 rounded-lg bg-gray-50 dark:bg-slate-800/60">
+        <div class="min-w-0">
+          <div class="font-semibold text-gray-800 dark:text-gray-100">Manual Scanner Mode</div>
+          <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
+            <b>ON</b>: لو السكانر فشل بيطلع Manual Scanner popup والبازر بيرن لحد ما تدخل الكود بإيدك.<br>
+            <b>OFF</b>: مفيش popup ولا بازر — بيتسجّل alert بس إن جه تريجر من غير سكان،
+            والسيكونس بيكمّل عادي ويستنى تلاجة جديدة.
+          </p>
+        </div>
+
+        <label class="relative inline-flex items-center cursor-pointer shrink-0 mt-1 {% if auth != 'dev' %}pointer-events-none opacity-60{% endif %}">
+          <input type="checkbox" id="manualModeToggle" class="sr-only peer">
+          <div class="w-12 h-6 bg-gray-300 dark:bg-slate-600 rounded-full peer peer-checked:bg-green-600 transition-colors"></div>
+          <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-6"></div>
+        </label>
+      </div>
+
+      <div class="mt-2 text-xs font-semibold" id="manualModeStatus"></div>
+    </div>
+
+    <form id="ioMappingForm">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="space-y-4">
+          <h4 class="font-bold border-b pb-1 text-blue-600 dark:text-blue-400">Outputs (Writes)</h4>
+          <div id="mapping-outputs-container" class="space-y-3"></div>
+        </div>
+        <div class="space-y-4">
+          <h4 class="font-bold border-b pb-1 text-emerald-600 dark:text-emerald-400">Inputs (Reads)</h4>
+          <div id="mapping-inputs-container" class="space-y-3"></div>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-3 mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition">Save Mapping</button>
+        <button type="button" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition" onclick="resetIoMapping()">Reset to Default</button>
+        <button type="button" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition" onclick="turnOffAllIO()">Turn OFF ALL</button>
+      </div>
+    </form>
+
+    {% if auth == 'dev' %}
+    <!-- Device addresses (IP / Port) — Developer mode only.
+         الحقول بتتبني من JS من /endpoints، عشان أي جهاز جديد يتضاف في
+         ioSetting.default_endpoints يظهر هنا لوحده من غير تعديل HTML. -->
+    <form id="endpointsForm" class="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+      <h4 class="font-bold border-b pb-1 text-amber-600 dark:text-amber-400 mb-4">
+        Device Addresses <span class="text-xs font-normal opacity-70">(Developer only)</span>
+      </h4>
+
+      <div id="endpointsContainer" class="space-y-3 text-sm"></div>
+
+      <div id="endpointsResult" class="text-xs rounded p-3 mt-4 hidden"></div>
+
+      <p class="text-xs opacity-60 mt-3">
+        التعديل بيتحفظ في config.json وبيتطبق أول ما تدوس Restart.
+      </p>
+
+      <div class="flex flex-wrap gap-3 mt-4">
+        <button type="submit" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-lg transition">Save Addresses</button>
+        <button type="button" id="btnResetEndpoints" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition">Reset to Default</button>
+      </div>
+    </form>
+
+    <!-- VisionMaster paths — Developer mode only -->
+    <form id="visionMasterForm" class="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+      <h4 class="font-bold border-b pb-1 text-purple-600 dark:text-purple-400 mb-4">
+        VisionMaster <span class="text-xs font-normal opacity-70">(Developer only)</span>
+      </h4>
+
+      <div class="space-y-4 text-sm">
+        <div>
+          <label for="vmAssemblyDir" class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Assembly Directory</label>
+          <div class="flex gap-2">
+            <input type="text" id="vmAssemblyDir" name="assembly_dir" spellcheck="false"
+              class="flex-1 min-w-0 border border-gray-300 dark:border-gray-600 rounded p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-purple-500">
+            <button type="button" id="btnBrowseAssembly"
+              class="shrink-0 bg-slate-600 hover:bg-slate-700 text-white text-xs font-semibold py-2 px-3 rounded transition">Browse…</button>
+          </div>
+          <p class="text-xs opacity-60 mt-1">سيبه فاضي للاكتشاف الأوتوماتيكي — <span id="vmDetectedAssembly" class="font-mono"></span></p>
+        </div>
+
+        <div>
+          <label for="vmSolutionPath" class="block font-medium mb-1 text-gray-700 dark:text-gray-300">Solution File (.solw / .sol)</label>
+          <div class="flex gap-2">
+            <input type="text" id="vmSolutionPath" name="solution_path" spellcheck="false"
+              class="flex-1 min-w-0 border border-gray-300 dark:border-gray-600 rounded p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-purple-500">
+            <button type="button" id="btnBrowseSolution"
+              class="shrink-0 bg-slate-600 hover:bg-slate-700 text-white text-xs font-semibold py-2 px-3 rounded transition">Browse…</button>
+          </div>
+          <p class="text-xs opacity-60 mt-1">VisionMaster 4.4 → .solw &nbsp;|&nbsp; 4.3 → .sol</p>
+        </div>
+
+        <div id="vmCheckResult" class="text-xs rounded p-3 hidden"></div>
+      </div>
+
+      <div class="flex flex-wrap gap-3 mt-6">
+        <button type="submit" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition">Save VisionMaster Paths</button>
+        <button type="button" id="btnVmCheck" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition">Check Paths</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if auth == 'dev' %}
+<!-- File Picker (VisionMaster paths) — Developer mode only.
+     بيتصفّح ملفات الجهاز اللي شغال عليه التطبيق، مش جهاز المتصفح. -->
+<div id="filePickerModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-5 w-full max-w-2xl shadow-2xl flex flex-col" style="max-height:85vh">
+    <div class="flex justify-between items-center mb-3 border-b pb-2">
+      <h3 id="filePickerTitle" class="text-lg font-semibold text-[#0382b8]">Select File</h3>
+      <button type="button" id="btnCloseFilePicker" class="text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
+    </div>
+
+    <div class="flex gap-2 items-center mb-3">
+      <button type="button" id="btnPickerUp"
+        class="shrink-0 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-xs font-semibold py-1.5 px-3 rounded transition">↑ Up</button>
+      <input type="text" id="pickerPath" spellcheck="false"
+        class="flex-1 min-w-0 border border-gray-300 dark:border-gray-600 rounded p-1.5 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white font-mono text-xs">
+      <button type="button" id="btnPickerGo"
+        class="shrink-0 bg-gray-500 hover:bg-gray-600 text-white text-xs font-semibold py-1.5 px-3 rounded transition">Go</button>
+    </div>
+
+    <div id="pickerDrives" class="flex flex-wrap gap-2 mb-3"></div>
+
+    <div id="pickerError" class="hidden text-xs rounded p-2 mb-3 bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200"></div>
+
+    <div id="pickerList" class="flex-1 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded divide-y divide-gray-100 dark:divide-gray-700 text-sm"></div>
+
+    <div class="flex gap-3 mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+      <button type="button" id="btnPickerSelect"
+        class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition">Select</button>
+      <button type="button" id="btnPickerCancel"
+        class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition">Cancel</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Times Modal -->
+<div id="timesModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Adjust Time Settings</h3>
+      <button id="btnCloseTimes" class="text-gray-500 hover:text-gray-700">&times;</button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="space-y-3">
+        <h4 class="font-medium border-b pb-1">Socket Timeouts</h4>
+        <div><label class="block text-sm mb-1">Device Connection (s)</label><input type="number" id="deviceConnectTimeout" class="w-full border rounded p-2 dark:bg-gray-700" step="0.1" min="1" max="30"></div>
+        <div><label class="block text-sm mb-1">Device Receive (s)</label><input type="number" id="deviceRecvTimeout" class="w-full border rounded p-2 dark:bg-gray-700" step="0.1" min="0.5" max="10"></div>
+        <div><label class="block text-sm mb-1">Client Socket (s)</label><input type="number" id="clientSocketTimeout" class="w-full border rounded p-2 dark:bg-gray-700" step="0.1" min="0.5" max="10"></div>
+      </div>
+      <div class="space-y-3">
+        <h4 class="font-medium border-b pb-1">Reconnection Delays</h4>
+        <div><label class="block text-sm mb-1">Initial Retry Base (s)</label><input type="number" id="reconnectBaseDelay" class="w-full border rounded p-2 dark:bg-gray-700" step="0.1" min="0.1" max="5"></div>
+        <div><label class="block text-sm mb-1">Max Backoff (s)</label><input type="number" id="maxBackoff" class="w-full border rounded p-2 dark:bg-gray-700" step="1" min="10" max="60"></div>
+        <div><label class="block text-sm mb-1">Check Interval (s)</label><input type="number" id="reconnectCheckInterval" class="w-full border rounded p-2 dark:bg-gray-700" step="1" min="1" max="60"></div>
+      </div>
+      <div class="space-y-3">
+        <h4 class="font-medium border-b pb-1">Data Streaming (ms)</h4>
+        <div><label class="block text-sm mb-1">Default Char Delay</label><input type="number" id="defaultCharDelay" class="w-full border rounded p-2 dark:bg-gray-700" step="10" min="10" max="5000"></div>
+        <div><label class="block text-sm mb-1">S1 Char Delay</label><input type="number" id="s1CharDelay" class="w-full border rounded p-2 dark:bg-gray-700" step="10" min="10" max="5000"></div>
+        <div><label class="block text-sm mb-1">S2 Char Delay</label><input type="number" id="s2CharDelay" class="w-full border rounded p-2 dark:bg-gray-700" step="10" min="10" max="5000"></div>
+      </div>
+      <div class="space-y-3">
+        <h4 class="font-medium border-b pb-1">Command Sequences</h4>
+        <div><label class="block text-sm mb-1">Frame Delay (s)</label><input type="number" id="frameDelay" class="w-full border rounded p-2 dark:bg-gray-700" step="0.1"></div>
+        <div><label class="block text-sm mb-1">Follow-up Delay (s)</label><input type="number" id="followupDelay" class="w-full border rounded p-2 dark:bg-gray-700" step="1"></div>
+        <div><label class="block text-sm mb-1">Plc Signal Period (s)</label><input type="number" id="PlcSignal" class="w-full border rounded p-2 dark:bg-gray-700" step="0.1"></div>
+      </div>
+      <div class="space-y-3">
+        <h4 class="font-medium border-b pb-1">Web Interface (ms)</h4>
+        <div><label class="block text-sm mb-1">Status Refresh</label><input type="number" id="statusRefresh" class="w-full border rounded p-2 dark:bg-gray-700" step="100" min="500" max="10000"></div>
+        <div><label class="block text-sm mb-1">Log Polling</label><input type="number" id="logPolling" class="w-full border rounded p-2 dark:bg-gray-700" step="100" min="500" max="10000"></div>
+        <div><label class="block text-sm mb-1">Server4 Refresh</label><input type="number" id="server4Refresh" class="w-full border rounded p-2 dark:bg-gray-700" step="100" min="500" max="10000"></div>
+        <div><label class="block text-sm mb-1">Image Time Out (s)</label><input type="number" id="ImageTimeout" class="w-full border rounded p-2 dark:bg-gray-700" step="1"></div>
+      </div>
+      <div class="space-y-3">
+        <h4 class="font-medium border-b pb-1">API &amp; Database</h4>
+        <div><label class="block text-sm mb-1">Send Timeout (s)</label><input type="number" id="sendTimeout" class="w-full border rounded p-2 dark:bg-gray-700" step="1"></div>
+        <div><label class="block text-sm mb-1">Auto-send Gap (ms)</label><input type="number" id="autoSendGap" class="w-full border rounded p-2 dark:bg-gray-700" step="10"></div>
+        <div><label class="block text-sm mb-1">DB Timeout (s)</label><input type="number" id="dbTimeout" class="w-full border rounded p-2 dark:bg-gray-700" step="1"></div>
+        <div><label class="block text-sm mb-1" title="Same dummy scanned again within this time is skipped">Duplicate Scan Window (s)</label><input type="number" id="duplicateScanWindow" class="w-full border rounded p-2 dark:bg-gray-700" step="10" min="1"></div>
+      </div>
+    </div>
+    <div class="flex gap-2 mt-6">
+      <button id="btnSaveTimes"  class="btn btn-primary flex-1">Save Settings</button>
+      <button id="btnResetTimes" class="btn btn-ghost">Reset to Defaults</button>
+      <button id="btnCancelTimes" class="btn btn-ghost">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Error Modal -->
+<div id="errorModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-2xl text-center">
+    <div class="text-red-500 mb-6">
+      <svg class="w-24 h-24 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+    </div>
+    <h2 class="text-4xl font-bold text-red-600 mb-4">ERROR</h2>
+    <p class="text-xl text-gray-700 dark:text-gray-300 mb-2">Station Two Error Condition Detected</p>
+    <p class="text-lg text-gray-600 dark:text-gray-400 mb-8">Please check Station Two and reset when ready</p>
+    <button id="btnResetError" class="px-8 py-4 bg-red-600 text-white text-xl font-bold rounded-lg hover:bg-red-700 transition-colors">RESET</button>
+  </div>
+</div>
+
+<!-- Manual Scanner Modals -->
+<div id="manualScannerModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-md text-center">
+    <h2 class="text-2xl font-bold text-red-600 mb-4"> System Alert</h2>
+    <p class="text-gray-700 dark:text-gray-300 mb-6">ERROR: Auto SCANNING FAILED in outer station</p>
+    <div class="flex flex-col gap-4">
+      <input id="manualInput" type="text" class="border p-2 rounded w-full" placeholder="Scan or enter code manually">
+      <button onclick="submitManualData()" class="bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700">OK / Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="manualScannerModal2" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-md text-center">
+    <h2 class="text-2xl font-bold text-red-600 mb-4"> System Alert</h2>
+    <p class="text-gray-700 dark:text-gray-300 mb-6">ERROR: Auto SCANNING FAILED in inner station</p>
+    <div class="flex flex-col gap-4">
+      <input id="manualInput2" type="text" class="border p-2 rounded w-full" placeholder="Scan or enter code manually">
+      <button onclick="submitManualData2()" class="bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700">OK / Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" style="display:none"></div>
+
+<!-- ============================================================
+     PROCESS CONTROL (START / STOP)
+     يتكلم مع /process/start و /process/stop و /process/status
+     ============================================================ -->
+<script>
+(function () {
+  const btnStart   = document.getElementById('btnStartProcess');
+  const btnStop    = document.getElementById('btnStopProcess');
+  const btnRestart = document.getElementById('btnRestartProcess');
+  const badge      = document.getElementById('processStatusBadge');
+  const elMessage  = document.getElementById('processMessage');
+  const elMsgBox   = document.getElementById('processMessageBox');
+  const elMsgDot   = document.getElementById('processMessageDot');
+  const elMsgPing  = document.getElementById('processMessagePing');
+
+  if (!btnStart || !btnStop) return;   // الصفحة دي مش الرئيسية
+
+  const BOX_BASE = 'transition-all duration-300 inline-flex items-center gap-2.5 max-w-full px-3.5 py-1.5 rounded-full border ';
+
+  const MSG_STYLES = {
+    ok:   { box: 'border-emerald-200 bg-emerald-50 dark:border-emerald-800/60 dark:bg-emerald-900/20',
+            text: 'text-sm font-medium text-emerald-700 dark:text-emerald-300 truncate',
+            dot: 'relative inline-flex rounded-full h-2 w-2 bg-emerald-500', ping: true },
+    err:  { box: 'border-red-200 bg-red-50 dark:border-red-800/60 dark:bg-red-900/20',
+            text: 'text-sm font-medium text-red-700 dark:text-red-300 truncate',
+            dot: 'relative inline-flex rounded-full h-2 w-2 bg-red-500', ping: true },
+    busy: { box: 'border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-900/20',
+            text: 'text-sm font-medium text-blue-700 dark:text-blue-300 truncate',
+            dot: 'relative inline-flex rounded-full h-2 w-2 bg-blue-500', ping: true }
+  };
+
+  let busy = false;
+  let lastState = null;   // عشان نعرف إمتى العملية خلصت فنمسح رسالة الانتظار
+
+  function render(status) {
+    const running = !!(status && status.running);
+
+    // Badge = persistent state only. Transient action feedback lives in the pill.
+    // "starting" = العملية شغالة بس لسه بتحاول توصل بالأجهزة (Start_connetion).
+    // مهم نفرّق: قبل كده كانت بتقول Running وهي واقفة مستنية الهاردوير.
+    const state = (status && status.state) || (running ? 'running' : 'stopped');
+    const stopping = state === 'stopping';
+
+    badge.textContent =
+      state === 'running'  ? 'Running'  :
+      state === 'starting' ? 'Connecting…' :
+      stopping             ? 'Stopping…' : 'Stopped';
+
+    badge.className =
+      'shrink-0 text-xs font-semibold px-3 py-1 rounded-full tracking-wider uppercase transition-opacity ' +
+      (state === 'running'  ? 'bg-green-500 animate-pulse' :
+       state === 'starting' ? 'bg-amber-500 animate-pulse' :
+       stopping             ? 'bg-orange-500 animate-pulse' : 'bg-gray-500/80');
+
+    // أثناء الإيقاف كل الأزرار مقفولة — العملية بتتفكّك في الخلفية
+    btnStart.disabled   = busy || running || stopping;
+    btnStop.disabled    = busy || !running || stopping;
+    btnRestart.disabled = busy || !running || stopping;
+
+    // إعلان انتهاء العملية.
+    // من غير ده رسالة "Stopping…" كانت بتفضل معلقة للأبد، لأن الرد بيرجع
+    // فورًا والإيقاف بيخلص بعده في الخلفية — ومفيش حاجة كانت بتمسحها.
+    // الـ restart بيعدّي على كذا حالة: running → stopping → stopped
+    // → starting → running. بنعلن كل واحدة فيهم، وإلا الرسالة بتفضل
+    // واقفة على أول حاجة اتكتبت.
+    if (lastState !== null && lastState !== state) {
+      if (status && status.last_error)   setMessage(status.last_error, 'err');
+      else if (state === 'stopping')     setMessage('Stopping…', 'busy');
+      else if (state === 'stopped')      setMessage('Process stopped', 'ok');
+      else if (state === 'starting')     setMessage('Starting…', 'busy');
+      else if (state === 'running')      setMessage('Process running', 'ok');
+    } else if (status && status.last_error && !busy) {
+      setMessage(status.last_error, 'err');
+    }
+
+    lastState = state;
+  }
+
+  // kind: 'ok' | 'err' | 'busy'  (legacy: true = err, false = ok)
+  function setMessage(text, kind) {
+    if (kind === true)  kind = 'err';
+    if (kind === false || !kind) kind = 'ok';
+
+    if (!text) {                       // hide, but keep the strip's height
+      elMsgBox.className = BOX_BASE + 'opacity-0 scale-95 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800/60';
+      elMessage.textContent = '';
+      return;
+    }
+
+    const s = MSG_STYLES[kind] || MSG_STYLES.ok;
+    elMsgBox.className   = BOX_BASE + 'opacity-100 scale-100 ' + s.box;
+    elMessage.className  = s.text;
+    elMessage.textContent = text;
+    elMsgDot.className   = s.dot;
+    elMsgPing.className  = s.dot.replace('relative inline-flex', 'absolute inline-flex') +
+                           ' opacity-75' + (s.ping ? ' animate-ping' : '');
+  }
+
+  async function refreshStatus() {
+    try {
+      const res = await fetch('/process/status', { cache: 'no-store' });
+      if (!res.ok) return;
+      render(await res.json());
+    } catch (e) {
+      badge.textContent = 'Offline';
+      badge.className = 'shrink-0 text-xs font-semibold px-3 py-1 rounded-full bg-amber-500 tracking-wider uppercase';
+    }
+  }
+
+  async function callProcess(action, pendingText) {
+    if (busy) return;
+    busy = true;
+
+    // لو حصل أي شيء غير متوقع، busy لازم يرجع false — وإلا الـ polling
+    // بيقف (شرطه !busy) والواجهة بتعلّق. الحارس ده بيضمن كده.
+    const busyGuard = setTimeout(() => { busy = false; }, 20000);
+
+    btnStart.disabled = btnStop.disabled = btnRestart.disabled = true;
+    // Badge keeps showing the *state* (Running/Stopped) — the pill owns
+    // the in-progress feedback, so we don't say the same thing twice.
+    badge.classList.add('opacity-60');
+    setMessage(pendingText, 'busy');
+
+    try {
+      const res  = await fetch('/process/' + action, { method: 'POST' });
+      const data = await res.json();
+
+      setMessage(data.message || '', data.ok ? 'ok' : 'err');
+      if (typeof showToast === 'function') {
+        showToast(data.message || action, data.ok ? 'ok' : 'err');
+      }
+      render(data.status || {});
+    } catch (e) {
+      setMessage('Request failed: ' + e.message, 'err');
+      refreshStatus();
+    } finally {
+      clearTimeout(busyGuard);
+      busy = false;
+      badge.classList.remove('opacity-60');
+    }
+  }
+
+  btnStart.addEventListener('click',   () => callProcess('start',   'Starting…'));
+  btnRestart.addEventListener('click', () => callProcess('restart', 'Restarting…'));
+
+  btnStop.addEventListener('click', () => {
+    if (!confirm('Stop the production-line process?\nAll outputs will be switched OFF and every connection closed.')) return;
+    callProcess('stop', 'Stopping…');
+  });
+
+  // Socket.IO بيدي تحديث فوري لو شغال...
+  try {
+    if (typeof RT !== 'undefined' && typeof RT.on === 'function') {
+      RT.on('process_status', (data) => { if (!busy) render(data); });
+    }
+  } catch (e) { /* مفيش realtime — الـ polling تحت بيغطّي */ }
+
+  // ...بس الـ polling بيفضل شغال *دايمًا* كشبكة أمان.
+  //
+  // قبل كده كنت بوقف الـ polling لما الـ socket يبان متصل، وده خلّى رجوع
+  // الأزرار معتمد على وصول حدث. أي حدث ضايع = أزرار مقفولة للأبد.
+  // الطلب ده صغير جدًا كل 3 ثواني، والفرق في الترافيك مايستاهلش إن
+  // لوحة تحكم خط إنتاج تعلّق.
+  refreshStatus();
+  setInterval(() => {
+    try {
+      if (!busy) refreshStatus();
+    } catch (e) {
+      console.error('status poll failed', e);
+    }
+  }, 3000);
+})();
+</script>
+
+</body>
+</html>

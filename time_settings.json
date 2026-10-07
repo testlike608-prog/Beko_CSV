@@ -1,0 +1,22 @@
+{
+  "deviceConnectTimeout": 5,
+  "deviceRecvTimeout": 1,
+  "clientSocketTimeout": 1,
+  "reconnectBaseDelay": 0.5,
+  "maxBackoff": 30,
+  "reconnectCheckInterval": 1,
+  "defaultCharDelay": 100,
+  "s1CharDelay": 100,
+  "s2CharDelay": 100,
+  "frameDelay": 1,
+  "followupDelay": 30,
+  "statusRefresh": 1500,
+  "logPolling": 1300,
+  "server4Refresh": 2200,
+  "sendTimeout": 25,
+  "autoSendGap": 120,
+  "dbTimeout": 10,
+  "ImageTimeout": 10,
+  "PlcSignal": 0.1,
+  "duplicateScanWindow": 120
+}

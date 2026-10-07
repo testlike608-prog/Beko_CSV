@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Station Logs</title>
+  <link rel="icon" href="/static/meeserve.png">
+  <link rel="stylesheet" href="/static/styles.css">
+  <style>
+    /* الـ Pop-out: المربّع بياخد الـ window كلها — كبّري الـ window وحركيها زي ما انتي عايزة */
+    html, body { height: 100%; background: #0b0f17; color: #e5e7eb; }
+    body { display: flex; flex-direction: column; }
+    .station-log { flex: 1; display: flex; flex-direction: column; border: 0; border-radius: 0; min-height: 0; }
+    .station-log-bar { padding: 8px 12px; }
+    .station-log-title { color: #e5e7eb; font-size: 14px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .station-log-body { flex: 1; height: auto; resize: none; min-height: 0; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="station-log" id="log">
+    <div class="station-log-bar">
+      <span class="station-log-title" id="logTitle">Station Logs</span>
+      <div class="station-log-tools">
+        <select class="station-log-filter" title="Filter">
+          <option value="all">All</option>
+          <option value="warn">Warnings +</option>
+          <option value="error">Errors</option>
+        </select>
+        <button type="button" class="station-log-font-down" title="Smaller text">A&minus;</button>
+        <button type="button" class="station-log-font-up" title="Bigger text">A+</button>
+        <button type="button" class="station-log-pause" title="Pause auto-scroll">Pause</button>
+        <button type="button" class="station-log-clear" title="Clear view">Clear</button>
+      </div>
+    </div>
+    <div class="station-log-body"></div>
+  </div>
+
+  <script src="/static/station_log.js"></script>
+  <script>
+    (function () {
+      const n = new URLSearchParams(location.search).get('station') === '2' ? '2' : '1';
+      const name = n === '1' ? 'Station 1 (Outer)' : 'Station 2 (Inner)';
+      document.title = name + ' Logs';
+      document.getElementById('logTitle').textContent = name + ' Logs';
+      const root = document.getElementById('log');
+      root.dataset.station = n;
+      initStationLog(root, { fullPage: true });
+    })();
+  </script>
+</body>
+</html>

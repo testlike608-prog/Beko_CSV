@@ -1,0 +1,21 @@
+Beko Refrigerator Vision System
+================================
+
+1. Copy main_fastapi.exe somewhere permanent, e.g. C:\beko\
+   The app writes its settings NEXT TO the exe, so put it in a
+   folder you control - not in Downloads or a temp folder.
+2. Install ODBC Driver 18 for SQL Server (x64) - once per machine
+   https://go.microsoft.com/fwlink/?linkid=2249006
+3. Make sure VisionMaster is installed and licensed
+4. Copy these from your previous install (if you have one),
+   into the SAME folder as the exe:
+      config.json
+      logins.csv
+      last_db1_settings.txt / last_db2_settings.txt
+      CreateProgram\
+5. Run main_fastapi.exe
+
+The app opens http://127.0.0.1:5000 automatically.
+
+Note: the first launch is slower - the exe unpacks itself once
+into a cache folder. Later launches reuse it and start fast.

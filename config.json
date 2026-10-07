@@ -1,0 +1,67 @@
+{
+    "io_mapping": {
+        "LIGHTING_S1": 8,
+        "LIGHTING_S2": 3,
+        "BUZZER_S1": 2,
+        "BUZZER_S2": 1,
+        "SCANNER_S1": 4,
+        "SCANNER_S2": 5,
+        "TESTDONE_S1": 6,
+        "TESTDONE_S2": 7,
+        "FAILURE": 16,
+        "READ_DI0": 0,
+        "READ_DI1": 7,
+        "READ_INPUTS_REG": 34
+    },
+    "vision_master": {
+        "assembly_dir": "C:\\Program Files\\VisionMaster4.3.0\\Development\\V4.x\\ComControls\\Assembly",
+        "solution_path": "D:\\BlockDiagram\\Beko_V2.0.sol",
+        "dry_run": false,
+        "dispose_on_stop": false
+    },
+    "endpoints": {
+        "scanner_s1": {
+            "ip": "192.168.1.16",
+            "port": 7940
+        },
+        "scanner_s2": {
+            "ip": "192.168.1.17",
+            "port": 7950
+        },
+        "vision_outer": {
+            "ip": "127.0.0.1",
+            "port": 20
+        },
+        "vision_inner": {
+            "ip": "127.0.0.1",
+            "port": 30
+        },
+        "vision_outer_sn": {
+            "ip": "127.0.0.1",
+            "port": 40
+        },
+        "vision_inner_sn": {
+            "ip": "127.0.0.1",
+            "port": 50
+        },
+        "io_read": {
+            "ip": "192.168.1.30",
+            "port": 502
+        },
+        "io_write": {
+            "ip": "192.168.1.30",
+            "port": 502
+        },
+        "cam_cap_s1": {
+            "ip": "127.0.0.1",
+            "port": 70
+        },
+        "cam_cap_s2": {
+            "ip": "127.0.0.1",
+            "port": 80
+        }
+    },
+    "features": {
+        "manual_mode": false
+    }
+}

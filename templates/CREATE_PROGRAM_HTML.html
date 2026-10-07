@@ -1,0 +1,317 @@
+<!doctype html>
+
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create Program</title>
+  <meta name="color-scheme" content="light dark" />
+  <script src="/static/tailwind.cdn.js"></script>
+  <link rel="stylesheet" href="/static/styles.css?v={{ static_v('styles.css') }}">
+  <script>
+    /* TESTS injected from Flask — must come before main.js */
+    let TESTS = {{ tests|tojson }};
+  </script>
+{% if static_exists('socket.io.min.js') %}  <script src="/static/socket.io.min.js?v={{ static_v('socket.io.min.js') }}"></script>
+{% endif %}
+  <script src="/static/main.js?v={{ static_v('main.js') }}"></script>
+  <script>
+    /* Initialize TESTS_MAP after main.js is loaded */
+    document.addEventListener('DOMContentLoaded', () => initTestsMap(TESTS));
+  </script>
+</head>
+<body class="min-h-full">
+<div class="max-w-7xl mx-auto p-6 space-y-6">
+
+  <header class="flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="{{ url_for('home.page_index') }}" class="px-3 py-2 rounded-lg border">← Back</a>
+      <h1 class="text-xl font-semibold">Create Program CSV</h1>
+    </div>
+    <img src="/static/meeserve.png" alt="Meeserv Logo" class="h-10" />
+  </header>
+
+  <div class="flex items-start gap-8 mt-4">
+    <aside class="w-64 shrink-0">
+      <nav class="bg-white dark:bg-[#0e1628] border border-gray-200/70 dark:border-slate-700 rounded-xl p-3 space-y-1">
+        <a href="{{ url_for('home.page_index') }}" class="group flex items-center justify-between w-full px-3 py-2 rounded-lg border border-transparent hover:border-slate-300/70 hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition">
+          <span class="flex items-center gap-2"><span class="font-medium">Home</span></span>
+          <span class="opacity-50 group-hover:opacity-80">›</span>
+        </a>
+        <a href="{{ url_for('SQL.sql_connection') }}" class="group flex items-center justify-between w-full px-3 py-2 rounded-lg border border-transparent hover:border-slate-300/70 hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition">
+          <span class="flex items-center gap-2"><span class="font-medium">SQL Connection</span></span>
+          <span class="opacity-50 group-hover:opacity-80">›</span>
+        </a>
+        <button id="btnAdjustTimes" class="group flex items-center justify-between w-full px-3 py-2 rounded-lg border border-transparent hover:border-slate-300/70 hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition text-left">
+          <span class="flex items-center gap-2"><span class="font-medium">Adjust Times</span></span>
+          <span class="opacity-50 group-hover:opacity-80">›</span>
+        </button>
+        <a href="{{ url_for('CreateUser.create_user') }}" class="group flex items-center justify-between w-full px-3 py-2 rounded-lg border border-transparent hover:border-slate-300/70 hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition">
+          <span class="flex items-center gap-2"><span class="font-medium">Create New User</span></span>
+          <span class="opacity-50 group-hover:opacity-80">›</span>
+        </a>
+        <div class="pt-2 mt-2 border-t border-slate-200/70 dark:border-slate-700">
+          <a href="{{ url_for('auth.login') }}" class="block px-3 py-2 rounded-lg hover:bg-slate-50/40 dark:hover:bg-slate-800/40 font-semibold text-[#0382b8]">Logout</a>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="flex-1">
+      <form method="POST" class="card space-y-5" onsubmit="return validateForm();">
+        <div>
+          <label class="block text-sm opacity-80 mb-1">Model Name <span class="text-red-500">*</span></label>
+          <input type="text" name="ModelName" id="ModelName" required class="w-full rounded-lg border p-3 bg-transparent" placeholder="beko" value="{{ ModelName if ModelName else '' }}" />
+        </div>
+        <div>
+          <label class="block text-sm opacity-80 mb-1">SKU <span class="text-red-500">*</span></label>
+          <input type="text" name="sku" id="sku" required class="w-full rounded-lg border p-3 bg-transparent" placeholder="WMT-1234" value="{{ sku if sku else '' }}" />
+        </div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Front Logo -->
+          <div>
+            <button type="button" class="btn picker-btn" onclick="openPicker('front_logo')">
+              <span contenteditable="true" class="editable-label" data-key="front_logo">Front Logo</span><span class="text-red-500">*</span>
+              <span id="disp_front_logo" class="chip">None</span>
+            </button>
+            <input type="hidden" name="front_logo" id="front_logo" value="{{ front_logo if front_logo else 'None|00' }}" />
+          </div>
+
+          <!-- Display Logo -->
+          <div>
+            <button type="button" class="btn picker-btn" onclick="openPicker('display_logo')">
+              <span contenteditable="true" class="editable-label" data-key="display_logo">Display Logo</span><span class="text-red-500">*</span>
+              <span id="disp_display_logo" class="chip">None</span>
+            </button>
+            <input type="hidden" name="display_logo" id="display_logo" value="{{ display_logo if display_logo else 'None|00' }}" />
+          </div>
+
+          <!-- Color -->
+          <div>
+            <button type="button" class="btn picker-btn" onclick="openPicker('color')">
+              <span contenteditable="true" class="editable-label" data-key="color">Color</span><span class="text-red-500">*</span>
+              <span id="disp_color" class="chip">None</span>
+            </button>
+            <input type="hidden" name="color" id="color" value="{{ color if color else 'None|00' }}" />
+          </div>
+
+          <!-- Data Logo -->
+          <div>
+            <button type="button" class="btn picker-btn" onclick="openPicker('data_logo')">
+              <span contenteditable="true" class="editable-label" data-key="data_logo">Data Logo</span><span class="text-red-500">*</span>
+              <span id="disp_data_logo" class="chip">None</span>
+            </button>
+            <input type="hidden" name="data_logo" id="data_logo" value="{{ data_logo if data_logo else 'None|00' }}" />
+          </div>
+
+          <!-- Inverter Logo -->
+          <div>
+            <button type="button" class="btn picker-btn" onclick="openPicker('inverter_logo')">
+              <span contenteditable="true" class="editable-label" data-key="inverter_logo">Inverter Logo</span><span class="text-red-500">*</span>
+              <span id="disp_inverter_logo" class="chip">None</span>
+            </button>
+            <input type="hidden" name="inverter_logo" id="inverter_logo" value="{{ inverter_logo if inverter_logo else 'None|00' }}" />
+          </div>
+
+          <!-- Power Logo -->
+          <div>
+            <button type="button" class="btn picker-btn" onclick="openPicker('power_logo')">
+              <span contenteditable="true" class="editable-label" data-key="power_logo">Power Logo</span><span class="text-red-500">*</span>
+              <span id="disp_power_logo" class="chip">None</span>
+            </button>
+            <input type="hidden" name="power_logo" id="power_logo" value="{{ power_logo if power_logo else 'None|00' }}" />
+          </div>
+
+          <!-- Eva Cover -->
+          <div>
+            <button type="button" class="btn picker-btn" onclick="openPicker('eva_cover')">
+              <span contenteditable="true" class="editable-label" data-key="eva_cover">Eva Cover</span><span class="text-red-500">*</span>
+              <span id="disp_eva_cover" class="chip">None</span>
+            </button>
+            <input type="hidden" name="eva_cover" id="eva_cover" value="{{ eva_cover if eva_cover else 'None|00' }}" />
+          </div>
+
+          <!-- Drawer Printing -->
+          <div>
+            <button type="button" class="btn picker-btn" onclick="openPicker('drawer_printing')">
+              <span contenteditable="true" class="editable-label" data-key="drawer_printing">Drawer Printing</span><span class="text-red-500">*</span>
+              <span id="disp_drawer_printing" class="chip">None</span>
+            </button>
+            <input type="hidden" name="drawer_printing" id="drawer_printing" value="{{ drawer_printing if drawer_printing else 'None|00' }}" />
+          </div>
+
+          <!-- Color Logo -->
+          <div>
+            <button type="button" class="btn picker-btn" onclick="openPicker('color_logo')">
+              <span contenteditable="true" class="editable-label" data-key="color_logo">Color Logo</span><span class="text-red-500">*</span>
+              <span id="disp_color_logo" class="chip">None</span>
+            </button>
+            <input type="hidden" name="color_logo" id="color_logo" value="{{ color_logo if color_logo else 'None|00' }}" />
+          </div>
+
+          <!-- Fan Cover -->
+          <div>
+            <button type="button" class="btn picker-btn" onclick="openPicker('fan_cover')">
+              <span contenteditable="true" class="editable-label" data-key="fan_cover">Fan Cover</span><span class="text-red-500">*</span>
+              <span id="disp_fan_cover" class="chip">None</span>
+            </button>
+            <input type="hidden" name="fan_cover" id="fan_cover" value="{{ fan_cover if fan_cover else 'None|00' }}" />
+          </div>
+
+          <!-- Shelve Color -->
+          <div>
+            <button type="button" class="btn picker-btn" onclick="openPicker('shelve_color')">
+              <span contenteditable="true" class="editable-label" data-key="shelve_color">Shelve Color</span><span class="text-red-500">*</span>
+              <span id="disp_shelve_color" class="chip">None</span>
+            </button>
+            <input type="hidden" name="shelve_color" id="shelve_color" value="{{ shelve_color if shelve_color else 'None|00' }}" />
+          </div>
+
+          {% for t in tests %}
+          <div class="flex items-center gap-2 w-full">
+            <button type="button" class="btn picker-btn flex-1" data-test="{{ t.name|replace(' ', '_') }}">
+              <span>{{ t.name }}</span>
+              <span id="selected-{{ t.name|replace(' ', '_') }}" class="chip">None</span>
+            </button>
+            <input type="hidden" name="{{ t.name|replace(' ', '_') }}" id="{{ t.name|replace(' ', '_') }}" value="None|00" />
+            <button type="button" class="bg-gray-200 hover:bg-gray-300 text-red-600 px-3 py-2 rounded-md" onclick="deleteTest('{{ t.name }}')"> </button>
+          </div>
+          {% endfor %}
+
+          <div class="add-box">
+            <a href="{{ url_for('CreateProgram.page_create_program') }}">
+              <div class="plus-circle">+</div>
+            </a>
+          </div>
+        </div>
+
+        <div class="pt-2 flex items-center w-full gap-4">
+          <button type="submit" id="submitBtn" class="flex-[3] py-3 rounded-xl bg-green-600 text-white hover:bg-green-700 text-base font-semibold">Create Program</button>
+          <button type="button" class="flex-[1] py-3 rounded-lg bg-red-600 text-white hover:bg-red-700 text-base font-medium" onclick="resetDefaults()">Reset</button>
+        </div>
+      </form>
+
+      {% if submitted %}
+      <div class="card mt-4">
+        <div class="text-green-500 font-semibold">Program created</div>
+        <div class="text-sm mt-2">
+          SKU: <span class="font-mono">{{ sku }}</span><br />
+          Model Name: <span class="font-mono">{{ ModelName }}</span>
+        </div>
+        {% if save_success_s1 or save_success_s2 %}
+        <div class="mt-3 p-3 border rounded-lg space-y-3">
+          {% if save_success_s1 %}
+          <div class="font-medium">{{ save_success_s1 }}</div>
+          <a class="text-blue-500 underline" href="{{ url_for('CreateProgram.download_program', filename=filename_s1) }}">Download {{ filename_s1 }}</a>
+          {% endif %}
+          {% if save_success_s2 %}
+          <div class="font-medium">{{ save_success_s2 }}</div>
+          <a class="text-blue-500 underline" href="{{ url_for('CreateProgram.download_program', filename=filename_s2) }}">Download {{ filename_s2 }}</a>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </main>
+  </div>
+</div>
+
+<!-- Picker Modal -->
+<div id="modalBackdrop" class="modal-backdrop">
+  <div class="modal">
+    <div class="flex items-center justify-between mb-2">
+      <h3 id="modalTitle" class="text-lg font-semibold">Pick an option</h3>
+      <button type="button" class="px-3 py-1 rounded-lg border" onclick="closePicker()">Close</button>
+    </div>
+    <div id="modalList" class="space-y-2 max-h-[60vh] overflow-auto"></div>
+  </div>
+</div>
+
+{% if csv_files %}
+<section class="card mt-4">
+  <div class="flex items-center justify-between">
+    <h2 class="font-semibold">Saved Programs</h2>
+    <div class="text-xs opacity-75">Newest first</div>
+  </div>
+  <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2" id="programGrid">
+    {% for file in csv_files %}
+    <button class="w-full text-left border rounded-lg p-2 hover:bg-slate-50/30" onclick="showProgramData('{{ file.name }}')">
+      <div class="font-medium text-sm truncate" title="{{ file.name }}">{{ file.name }}</div>
+      <div class="text-[11px] opacity-70">{{ (file.size/1024)|round(1) }} KB</div>
+    </button>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- Times Modal (shared structure) -->
+<div id="timesModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Adjust Time Settings</h3>
+      <button id="btnCloseTimes" class="text-gray-500 hover:text-gray-700">&times;</button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="space-y-3">
+        <h4 class="font-medium border-b pb-1">Socket Timeouts</h4>
+        <div><label class="block text-sm mb-1">Device Connection (s)</label><input type="number" id="deviceConnectTimeout" class="w-full border rounded p-2 dark:bg-gray-700" step="0.1"></div>
+        <div><label class="block text-sm mb-1">Device Receive (s)</label><input type="number" id="deviceRecvTimeout" class="w-full border rounded p-2 dark:bg-gray-700" step="0.1"></div>
+        <div><label class="block text-sm mb-1">Client Socket (s)</label><input type="number" id="clientSocketTimeout" class="w-full border rounded p-2 dark:bg-gray-700" step="0.1"></div>
+      </div>
+      <div class="space-y-3">
+        <h4 class="font-medium border-b pb-1">Data Streaming (ms)</h4>
+        <div><label class="block text-sm mb-1">S1 Char Delay</label><input type="number" id="s1CharDelay" class="w-full border rounded p-2 dark:bg-gray-700" step="10"></div>
+        <div><label class="block text-sm mb-1">S2 Char Delay</label><input type="number" id="s2CharDelay" class="w-full border rounded p-2 dark:bg-gray-700" step="10"></div>
+        <div><label class="block text-sm mb-1">Status Refresh (ms)</label><input type="number" id="statusRefresh" class="w-full border rounded p-2 dark:bg-gray-700" step="100"></div>
+      </div>
+    </div>
+    <div class="flex gap-2 mt-6">
+      <button id="btnSaveTimes"   class="btn btn-primary flex-1">Save Settings</button>
+      <button id="btnResetTimes"  class="btn btn-ghost">Reset to Defaults</button>
+      <button id="btnCancelTimes" class="btn btn-ghost">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Manual Scanner Modals -->
+<div id="manualScannerModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-md text-center">
+    <h2 class="text-2xl font-bold text-red-600 mb-4"> System Alert</h2>
+    <p class="text-gray-700 dark:text-gray-300 mb-6">ERROR: Auto SCANNING FAILED in outer station</p>
+    <div class="flex flex-col gap-4">
+      <input id="manualInput" type="text" class="border p-2 rounded w-full" placeholder="Scan or enter code manually">
+      <button onclick="submitManualData()" class="bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700">OK / Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="manualScannerModal2" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-md text-center">
+    <h2 class="text-2xl font-bold text-red-600 mb-4"> System Alert</h2>
+    <p class="text-gray-700 dark:text-gray-300 mb-6">ERROR: Auto SCANNING FAILED in inner station</p>
+    <div class="flex flex-col gap-4">
+      <input id="manualInput2" type="text" class="border p-2 rounded w-full" placeholder="Scan or enter code manually">
+      <button onclick="submitManualData2()" class="bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700">OK / Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="noCsv1" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-md text-center">
+    <h2 class="text-2xl font-bold text-red-600 mb-4"> System Alert</h2>
+    <p class="text-gray-700 dark:text-gray-300 mb-6">ERROR: THERE IS NO CSV IN OUTER STATION</p>
+    <button onclick="submitCsv1()" class="bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 w-full">OK / Confirm</button>
+  </div>
+</div>
+
+<div id="noCsv2" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-md text-center">
+    <h2 class="text-2xl font-bold text-red-600 mb-4"> System Alert</h2>
+    <p class="text-gray-700 dark:text-gray-300 mb-6">ERROR: THERE IS NO CSV IN INNER STATION</p>
+    <button onclick="submitCsv2()" class="bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 w-full">OK / Confirm</button>
+  </div>
+</div>
+
+<div id="toast" style="display:none"></div>
+
+</body>
+</html>

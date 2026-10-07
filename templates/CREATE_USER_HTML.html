@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create New User</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css?v={{ static_v('styles.css') }}">
+{% if static_exists('socket.io.min.js') %}  <script src="/static/socket.io.min.js?v={{ static_v('socket.io.min.js') }}"></script>
+{% endif %}
+  <script src="/static/main.js?v={{ static_v('main.js') }}"></script>
+</head>
+<body class="auth-body">
+
+  <a href="/home" class="back-link">← Back to Console</a>
+
+  <div class="login-container">
+    <div class="auth-logo">M</div>
+    <h1 class="auth-title">Create New User</h1>
+
+    {% if error %}
+    <div class="msg-error">{{ error }}</div>
+    {% endif %}
+    {% if message %}
+    <div class="msg-success">{{ message }}</div>
+    {% endif %}
+
+    <form method="POST" action="/create_user">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required placeholder="Enter your username">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required placeholder="Enter your password">
+      </div>
+      <div class="form-group">
+        <label for="auth">Authentication</label>
+        <select name="Authentication" id="auth">
+          <option value="">--choose--</option>
+          <option value="admin" {% if NewUser_data.get('auth') == 'admin' %}selected{% endif %}>Admin</option>
+          <option value="user"  {% if NewUser_data.get('auth') == 'user'  %}selected{% endif %}>User</option>
+        </select>
+      </div>
+      <button type="submit" class="auth-btn">ADD</button>
+    </form>
+  </div>
+
+</body>
+</html>

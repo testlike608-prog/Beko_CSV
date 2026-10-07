@@ -1,0 +1,269 @@
+name: Build Windows EXE
+
+# التشغيل:
+#   - يدوي: تبويب Actions → Build Windows EXE → Run workflow
+#   - أوتوماتيك: مع أي tag زي v1.0.0 → بيعمل Release وبيرفع الـ zip
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    # لازم ويندوز — pythonnet و pyodbc ويندوز فقط
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      # -------------------------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # -------------------------------------------------------------
+      - name: Setup Python 3.11 (64-bit)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+
+      # -------------------------------------------------------------
+      # كاش Nuitka: أول بناء ~30 دقيقة، اللي بعده ~5 دقايق
+      - name: Cache Nuitka
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\Nuitka\Nuitka\Cache
+          key: nuitka-${{ runner.os }}-py311-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            nuitka-${{ runner.os }}-py311-
+            nuitka-${{ runner.os }}-
+
+      # -------------------------------------------------------------
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+
+          # بنتأكد إن الملف موجود فعلاً قبل ما نكمّل — قبل كده كان فيه
+          # نسخة تانية بإملاء غلط (requirments.txt) ناقصة حزم، وخلّت
+          # البناء يفشل بـ "failed to locate package 'socketio'".
+          if (-not (Test-Path "requirements.txt")) {
+            Write-Error "requirements.txt not found in repo — did it get committed?"
+            exit 1
+          }
+          Write-Host "--- requirements.txt ---"
+          Get-Content requirements.txt
+
+          pip install -r requirements.txt
+
+          # ضمان إضافي: الحزمتين دول لازمين للبناء نفسه. لو ناقصين،
+          # Nuitka بيقع بـ "failed to locate package 'socketio'" بعد
+          # ما يكون خد دقايق في الكومبايل. بنسطّبهم صراحةً عشان
+          # الملف ما يبقاش نقطة فشل صامتة.
+          pip install "python-socketio>=5.11" "pythonnet>=3.0"
+
+          # zstandard اختيارية، بس من غيرها Nuitka بيبني الـ onefile
+          # من غير ضغط والحجم بيطلع أكبر بكتير.
+          pip install nuitka zstandard
+
+      # -------------------------------------------------------------
+      # تحقق مبكر: أرخص بكتير من إننا نكتشف النقص وسط الكومبايل
+      - name: Verify build prerequisites
+        shell: pwsh
+        run: |
+          python -c "import sys, struct; print('Python', sys.version); print('Bits:', struct.calcsize('P')*8)"
+
+          # أساسيات — من غيرها مفيش فايدة نكمّل
+          python -c "import fastapi;  print('fastapi   ', fastapi.__version__)"
+          python -c "import uvicorn;  print('uvicorn   ', uvicorn.__version__)"
+          python -c "import pyodbc;   print('pyodbc    ', pyodbc.version)"
+          python -c "import jinja2;   print('jinja2    ', jinja2.__version__)"
+
+          # اختيارية — بنبلّغ بس، البناء بيكمّل من غيرها
+          python -c "import socketio; print('socketio  ', socketio.__version__)" 2>$null
+          if ($LASTEXITCODE -ne 0) { Write-Warning "python-socketio missing — realtime push will be unavailable" }
+
+          python -c "import clr_loader; print('clr_loader OK')" 2>$null
+          if ($LASTEXITCODE -ne 0) { Write-Warning "pythonnet missing — VisionMaster will not load" }
+
+          Write-Host "--- installed packages ---"
+          pip list
+
+          # لو الكومبايل فشل بعدين على قيمة --onefile-tempdir-spec، الـ help
+          # ده بيوري الـ placeholders المدعومة في نسخة Nuitka دي بالظبط.
+          # بيتنفذ هنا عشان يظهر في اللوج *قبل* الكومبايل الطويل.
+          Write-Host "--- onefile tempdir spec placeholders ---"
+          python -m nuitka --help 2>&1 | Select-String -Pattern "tempdir-spec" -Context 0,12
+
+      # -------------------------------------------------------------
+      # ملحوظة: VisionMaster مش متسطب على الـ runner وده عادي —
+      # vision_master.py بيعمل import clr جوه load_vm() وقت التشغيل،
+      # مش وقت البناء. فالكومبايل بينجح من غيره.
+      - name: Build with Nuitka
+        shell: pwsh
+        run: |
+          # الحزم الاختيارية بتتضاف بس لو متسطبة فعلاً.
+          #
+          # --include-package لحزمة مش موجودة بيوقف البناء تمامًا بـ
+          # "failed to locate package". و socketio و pythonnet الاتنين
+          # اختياريين بالنسبة للتطبيق (بيرجع للـ polling، وVisionMaster
+          # بيتحمّل وقت التشغيل)، فمينفعش يكونوا إجباريين للبناء.
+          $extra = @()
+
+          python -c "import socketio" 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            $extra += '--include-package=socketio'
+            $extra += '--include-package=engineio'
+            $extra += '--include-module=engineio.async_drivers.asgi'
+            Write-Host "socketio found — realtime push included"
+          } else {
+            Write-Warning "python-socketio NOT installed — app will fall back to HTTP polling"
+          }
+
+          python -c "import clr_loader" 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            $extra += '--include-package=clr_loader'
+            $extra += '--include-package-data=clr_loader'
+            Write-Host "clr_loader found — VisionMaster SDK included"
+          } else {
+            Write-Warning "pythonnet NOT installed — VisionMaster will not load at runtime"
+          }
+
+          Write-Host "Extra flags: $($extra -join ' ')"
+
+          # onefile: الـ bootstrap بيفك ضغط البرنامج وبيشغله من مكان تاني.
+          # --onefile-tempdir-spec بيخلي المكان ده ثابت بدل ما يتفك من
+          # الأول كل تشغيلة (الحزمة ~100 ميجا، فالفرق في وقت البدء كبير).
+          # {VERSION} جوه المسار معناها إن أي إصدار جديد بيفك في مكان
+          # جديد، فمفيش خلط بين نسخة قديمة وجديدة.
+          #
+          # ملحوظة: ملفات المستخدم (config.json, logins.csv, CreateProgram)
+          # *مش* بتروح هناك — الكود بيستخدم __compiled__.containing_dir
+          # عشان يفضل يكتبهم جنب الـ exe. شوف fastapi_app/core.py.
+          python -m nuitka `
+            --standalone `
+            --onefile `
+            --onefile-tempdir-spec="{CACHE_DIR}/BekoVision/{VERSION}" `
+            --assume-yes-for-downloads `
+            --output-dir=dist `
+            --company-name="Meeserv" `
+            --product-name="Beko Refrigerator Vision System" `
+            --file-version=2.0.0 `
+            --product-version=2.0.0 `
+            --include-data-dir=templates=templates `
+            --include-data-dir=static=static `
+            --include-package=uvicorn `
+            --include-module=uvicorn.loops.auto `
+            --include-module=uvicorn.loops.asyncio `
+            --include-module=uvicorn.protocols.http.auto `
+            --include-module=uvicorn.protocols.http.h11_impl `
+            --include-module=uvicorn.protocols.websockets.auto `
+            --include-module=uvicorn.protocols.websockets.websockets_impl `
+            --include-module=uvicorn.lifespan.on `
+            --nofollow-import-to=tkinter `
+            --nofollow-import-to=pytest `
+            $extra `
+            main_fastapi.py
+
+      # -------------------------------------------------------------
+      # تأكيد إن الناتج موجود فعلاً قبل ما نرفعه
+      - name: Verify build output
+        shell: pwsh
+        run: |
+          # مع --onefile فيه ناتجين:
+          #   dist\main_fastapi.exe        <- الملف الواحد اللي بنسلّمه
+          #   dist\main_fastapi.dist\      <- الفولدر الوسيط اللي اتحزم منه
+          # بنفحص الفولدر الوسيط عشان نتأكد إن القوالب و static اتحزموا
+          # فعلاً — جوه الـ exe مش هنقدر نشوفهم.
+          $onefile = "dist\main_fastapi.exe"
+          $staging = "dist\main_fastapi.dist"
+
+          if (-not (Test-Path $onefile)) {
+            Write-Error "Build failed: $onefile not found"
+            exit 1
+          }
+          if (-not (Test-Path "$staging\templates")) {
+            Write-Error "Build failed: templates folder missing from the bundle"
+            exit 1
+          }
+          if (-not (Test-Path "$staging\static")) {
+            Write-Error "Build failed: static folder missing from the bundle"
+            exit 1
+          }
+
+          # حجم صغير بشكل غير منطقي معناه إن الحزم وقع في النص
+          $mb = (Get-Item $onefile).Length / 1MB
+          if ($mb -lt 20) {
+            Write-Error ("Build failed: onefile is only {0:N1} MB - packing looks incomplete" -f $mb)
+            exit 1
+          }
+          Write-Host ("Build OK - onefile {0:N1} MB" -f $mb)
+
+          # بنجهّز فولدر التسليم: الـ exe لوحده + ملف التعليمات
+          New-Item -ItemType Directory -Force -Path "dist\release" | Out-Null
+          Copy-Item $onefile "dist\release\main_fastapi.exe"
+
+      # -------------------------------------------------------------
+      # ملف يفكّر العميل بالخطوات
+      - name: Add install notes
+        shell: pwsh
+        run: |
+          @"
+          Beko Refrigerator Vision System
+          ================================
+
+          1. Copy main_fastapi.exe somewhere permanent, e.g. C:\beko\
+             The app writes its settings NEXT TO the exe, so put it in a
+             folder you control - not in Downloads or a temp folder.
+          2. Install ODBC Driver 18 for SQL Server (x64) - once per machine
+             https://go.microsoft.com/fwlink/?linkid=2249006
+          3. Make sure VisionMaster is installed and licensed
+          4. Copy these from your previous install (if you have one),
+             into the SAME folder as the exe:
+                config.json
+                logins.csv
+                last_db1_settings.txt / last_db2_settings.txt
+                CreateProgram\
+          5. Run main_fastapi.exe
+
+          The app opens http://127.0.0.1:5000 automatically.
+
+          Note: the first launch is slower - the exe unpacks itself once
+          into a cache folder. Later launches reuse it and start fast.
+          "@ | Out-File -FilePath "dist\release\INSTALL.txt" -Encoding utf8
+
+      # -------------------------------------------------------------
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: beko-vision-windows
+          path: dist/release/
+          retention-days: 30
+
+      # -------------------------------------------------------------
+      # مع أي tag: zip + Release جاهز للعميل
+      - name: Zip for release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist\release\* `
+                           -DestinationPath beko-vision-${{ github.ref_name }}.zip
+
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: beko-vision-${{ github.ref_name }}.zip
+          body: |
+            ## Beko Vision System ${{ github.ref_name }}
+
+            ### التسطيب على جهاز العميل
+            1. فك ضغط الملف في مكان ثابت، مثلاً `C:\beko\`
+            2. سطّب ODBC Driver 18 for SQL Server (x64) — مرة واحدة بس
+            3. اتأكد إن VisionMaster متسطب ومرخّص
+            4. انسخ `config.json` و `logins.csv` و `CreateProgram\` من النسخة القديمة
+            5. شغّل `main_fastapi.exe`
+
+            > الـ EXE ده اتبنى على runner من غير VisionMaster.
+            > لازم يتجرّب على جهاز فيه VisionMaster قبل التسليم.

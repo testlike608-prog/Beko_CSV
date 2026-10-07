@@ -1,0 +1,22 @@
+# ---- FastAPI stack (النسخة الجديدة) ----
+fastapi>=0.110
+uvicorn[standard]>=0.27
+jinja2>=3.1
+python-multipart>=0.0.9      # مطلوب لقراءة الـ Form data
+itsdangerous>=2.1            # مطلوب لـ SessionMiddleware
+
+# ---- Realtime (Socket.IO) ----
+python-socketio>=5.11        # بيجيب معاه python-engineio و bidict
+
+# ---- VisionMaster SDK (ويندوز فقط) ----
+# pythonnet هو اللي بيحمّل اسمبليز .NET بتاعة VisionMaster.
+# على لينكس التسطيب بينجح بس VisionMaster نفسه مش هيشتغل.
+pythonnet>=3.0 ; sys_platform == "win32"
+
+# ---- Flask stack (النسخة القديمة، لسه شغالة من main.py) ----
+Flask>=3.0
+waitress>=3.0
+
+# ---- مشترك ----
+pyodbc>=5.0
+pandas>=2.0

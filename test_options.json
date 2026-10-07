@@ -1,0 +1,241 @@
+{
+  "fixed_options": {
+    "front_logo": [
+      [
+        "None",
+        "00"
+      ],
+      [
+        "Beko",
+        "1A"
+      ],
+      [
+        "Defy",
+        "1B"
+      ],
+      [
+        "Arcelik",
+        "1C"
+      ],
+      [
+        "Ariston",
+        "1D"
+      ],
+      [
+        "Whirlpool",
+        "1E"
+      ],
+      [
+        "Hot point",
+        "1P"
+      ]
+    ],
+    "display_logo": [
+      [
+        "None",
+        "00"
+      ],
+      [
+        "311 L",
+        "1F"
+      ],
+      [
+        "411 L",
+        "1L"
+      ],
+      [
+        "390 L",
+        "1G"
+      ],
+      [
+        "High",
+        "1H"
+      ]
+    ],
+    "color": [
+      [
+        "None",
+        "00"
+      ],
+      [
+        "white",
+        "6A"
+      ],
+      [
+        "Black",
+        "6B"
+      ],
+      [
+        "Silver",
+        "6C"
+      ],
+      [
+        "Brushed Silver",
+        "6D"
+      ],
+      [
+        "Black Steel",
+        "6E"
+      ]
+    ],
+    "data_logo": [
+      [
+        "None",
+        "00"
+      ],
+      [
+        "25",
+        "6X"
+      ],
+      [
+        "10",
+        "9X"
+      ]
+    ],
+    "inverter_logo": [
+      [
+        "None",
+        "00"
+      ],
+      [
+        "inervter",
+        "7A"
+      ]
+    ],
+    "power_logo": [
+      [
+        "None",
+        "00"
+      ],
+      [
+        "present",
+        "3P"
+      ]
+    ],
+    "eva_cover": [
+      [
+        "None",
+        "00"
+      ],
+      [
+        "Beko",
+        "2A"
+      ],
+      [
+        "Defy",
+        "2B"
+      ],
+      [
+        "Arcelik",
+        "2C"
+      ],
+      [
+        "Ariston",
+        "2D"
+      ],
+      [
+        "Whirlpool",
+        "2E"
+      ]
+    ],
+    "drawer_printing": [
+      [
+        "None",
+        "00"
+      ],
+      [
+        "harvest",
+        "5B"
+      ],
+      [
+        "Crisper",
+        "5D"
+      ],
+      [
+        "freshzone",
+        "5E"
+      ],
+      [
+        "Dairy",
+        "5A"
+      ]
+    ],
+    "color_logo": [
+      [
+        "None",
+        "00"
+      ],
+      [
+        "white",
+        "6A"
+      ],
+      [
+        "Black",
+        "6B"
+      ],
+      [
+        "opt3",
+        "6C"
+      ],
+      [
+        "opt4",
+        "6D"
+      ],
+      [
+        "opt5",
+        "6E"
+      ]
+    ],
+    "fan_cover": [
+      [
+        "None",
+        "00"
+      ],
+      [
+        "Beko",
+        "8A"
+      ],
+      [
+        "neo",
+        "8B"
+      ],
+      [
+        "dual cooling",
+        "8C"
+      ],
+      [
+        "Ariston",
+        "8D"
+      ]
+    ],
+    "shelve_color": [
+      [
+        "None",
+        "01"
+      ],
+      [
+        "white",
+        "9W"
+      ],
+      [
+        "Black",
+        "9B"
+      ],
+      [
+        "silver",
+        "9S"
+      ]
+    ]
+  },
+  "labels": {
+    "front_logo": "Front Logo",
+    "eva_cover": "Eva Cover",
+    "display_logo": "Alignment",
+    "inverter_logo": "Inverter Logo",
+    "power_logo": "Power Logo",
+    "data_logo": "warranty",
+    "drawer_printing": "Drawer Printing",
+    "shelve_color": "Shelve Color",
+    "color": "Door Color"
+  }
+}
