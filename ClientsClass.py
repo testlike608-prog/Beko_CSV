@@ -1699,7 +1699,8 @@ class App():
                                         with self.lock:
                                             self.station_one_data["db_status"] = "No DB connection"
                                             self.client_scanner_station1._log_add("WARN", "No DB connection")
-                        
+
+                hlb.copy_and_rename(source_file=None, dest_folder=None, new_name=None)        
             except Exception as e:
                    self.client_scanner_station1._log_add("FATAL", f"ERROR WHILE SCANNING DUMMY NUMBER: {e}")
         except Exception as e:
@@ -1895,6 +1896,8 @@ class App():
                                          with self.lock:
                                              self.station_two_data["db_status"] = "No DB connection"
                                              self.client_scanner_station2._log_add("WARN", "No DB connection")   
+
+                hlb.move_and_rename(source_file=None, dest_folder=None, new_name=None)
             except Exception as e:
                    self.client_scanner_station2._log_add("FATAL", f"ERROR WHILE SCANNING DUMMY NUMBER: {e}")
         except Exception as e:

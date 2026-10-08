@@ -5,6 +5,10 @@ from typing import List,Tuple,Dict,Any
 import threading
 import pandas as pd
 import ClientsClass
+import shutil
+from pathlib import Path
+
+
 
 #Globals
 CSV_CACHE: Dict[Tuple[str, str], Dict] = {}
@@ -80,7 +84,34 @@ Manual_Scanner_MODE =False
 
 
 
+#-----------------save images in new floder---------------
 
+
+def copy_and_rename(source_file, dest_folder, new_name):
+    """
+    بتنقل صورة لفولدر تاني وتغير اسمها.
+
+    source_file : مسار الصورة الأصلية
+    dest_folder : الفولدر الجديد
+    new_name    : الاسم الجديد (مع الامتداد)
+    """
+    source_file = Path(source_file)
+    dest_folder = Path(dest_folder)
+
+    if not source_file.exists():
+        print("الصورة مش موجودة!")
+        return None
+
+    dest_folder.mkdir(parents=True, exist_ok=True)
+    dest_file = dest_folder / new_name
+
+    if dest_file.exists():
+        print("في ملف بنفس الاسم موجود بالفعل في الفولدر الجديد!")
+        return None
+
+    shutil.copy2(str(source_file), str(dest_file))
+    print(f"تم نسخ الصورة إلى: {dest_file}")
+    return dest_file
 
 
 
